@@ -19,5 +19,5 @@ class User(Base):
     username = Column(String, unique=True, nullable=False)
     email = Column(String, unique=True, nullable=False)
     hashed_password = Column(String, nullable=False)
-    role = Column(Enum(UserRole), default=UserRole.STUDENT.value)
+    role = Column(Enum(UserRole), default=UserRole.STUDENT)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))

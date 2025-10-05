@@ -1,7 +1,11 @@
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+
+from app.routers import auth
 
 # Configure logging
 logging.basicConfig(
@@ -25,6 +29,18 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+
+app.include_router(auth.router)
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    errors = exc.errors()
+    messages = [f"{'.'.join(map(str, err['loc'][1:]))}: {err['msg']}" for err in errors]
+
+    return JSONResponse(
+        status_code=400,
+        content={"detail": messages if len(messages) > 1 else messages[0]}
+    )
 
 @app.get("/")
 async def root():
