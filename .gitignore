@@ -1,0 +1,8 @@
+#venv
+/venv/
+
+#Python bytecode
+__pycache__/
+
+#Env files
+.env
