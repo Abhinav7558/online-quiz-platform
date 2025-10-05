@@ -6,3 +6,6 @@ __pycache__/
 
 #Env files
 .env
+
+#vscode settings
+.vscode/
