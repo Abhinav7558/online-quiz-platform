@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from ..schemas.auth import UserCreate, UserCreateResponse
+from ..schemas import auth as auth_schemas
 from ..dependencies import get_db
-from ..models.user import User
-from ..utils.password_utils import get_password_hash
+from ..utils import password_utils, token_utils
+from ..crud import auth as auth_crud
 
 
 router = APIRouter(
@@ -13,33 +13,45 @@ router = APIRouter(
 )
 
 
-@router.post("/register", response_model=UserCreateResponse)
-async def register_user(user: UserCreate, db: Session = Depends(get_db)):
+@router.post("/register", response_model=auth_schemas.UserRegisterResponse)
+async def register_user(user: auth_schemas.UserRegister, db: Session = Depends(get_db)):
     """Register a new user"""
-    existing_user = db.query(User).filter((User.username == user.username) | (User.email == user.email)).first()
+    existing_user = auth_crud.get_user_by_username_or_email(db, user.username, user.email)
     if existing_user:
        raise HTTPException(status_code=400, detail="Username or email already registered")
     
-    new_user = User(
-        username = user.username,
-        email = user.email,
-        hashed_password = get_password_hash(user.password)
-    )
-
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
+    new_user = auth_crud.create_user(db, user)
 
     return new_user
      
 
-@router.post("/login")
-async def login_user():             
+@router.post("/login", response_model=auth_schemas.UserLoginResponse)
+async def login_user(user: auth_schemas.UserLoginCreate, db: Session = Depends(get_db)):             
     """User login"""
-    return {"message": "User logged in successfully"}
+    db_user = auth_crud.get_user_by_username(db, user.username)
+    if not db_user or not password_utils.verify_password(user.password, db_user.hashed_password):
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+    
+    # Here you would normally generate JWT tokens
+    access_token = token_utils.create_access_token(data={"sub": db_user.username})
+    refresh_token = token_utils.create_refresh_token(data={"sub": db_user.username})
 
-@router.post("/logout")
-async def logout_user():
-    """User logout"""
-    return {"message": "User logged out successfully"}
+    return {
+        "access_token" : access_token,
+        "refresh_token" : refresh_token
+    }
+
+
+@router.post("/refresh", response_model=auth_schemas.TokenRefreshResponse)
+async def refresh_token(refresh_token: str):
+    """Refresh access token"""
+    try:
+        new_access_token = token_utils.create_access_token_from_refresh_token(refresh_token)
+    except ValueError as e:
+        raise HTTPException(status_code=401, detail="Invalid token type, expected refresh token")
+
+    return {
+        "access_token": new_access_token,
+    }
+    
 
