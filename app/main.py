@@ -6,6 +6,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from app.routers import auth
+from app.utils.seed_admin import create_default_admin
 
 # Configure logging
 logging.basicConfig(
@@ -19,6 +20,7 @@ async def lifespan(app: FastAPI):
     """Lifespan context manager for startup and shutdown events"""
     # Startup
     logger.info("Starting Quiz Platform API")
+    create_default_admin()
     yield
     # Shutdown
     logger.info("Shutting down Quiz Platform API")

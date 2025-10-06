@@ -9,6 +9,10 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = Field(60, env="ACCESS_TOKEN_EXPIRE_MINUTES")
     refresh_token_expire_days: int = Field(7, env="REFRESH_TOKEN_EXPIRE_DAYS")
 
+    default_admin_username: str = Field(..., env="DEFAULT_ADMIN_USERNAME")
+    default_admin_email: str = Field(..., env="DEFAULT_ADMIN_EMAIL")
+    default_admin_password: str = Field(..., env="DEFAULT_ADMIN_PASSWORD")
+
     class Config:
         env_file = ".env"
 
