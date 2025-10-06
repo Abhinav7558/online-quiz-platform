@@ -5,7 +5,7 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from app.routers import auth
+from .routers import auth, user
 from app.utils.seed_admin import create_default_admin
 
 # Configure logging
@@ -33,6 +33,7 @@ app = FastAPI(
 )
 
 app.include_router(auth.router)
+app.include_router(user.router)
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
