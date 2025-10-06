@@ -1,7 +1,6 @@
-import jwt
 from datetime import datetime, timedelta, timezone
 
-from jwt import ExpiredSignatureError, InvalidTokenError
+from jose import jwt, ExpiredSignatureError,JWTError
 
 from app.config import settings
 
@@ -37,5 +36,5 @@ def create_access_token_from_refresh_token(refresh_token: str) -> str:
 
     except ExpiredSignatureError:
         raise ValueError("Refresh token expired")
-    except InvalidTokenError:
+    except JWTError:
         raise ValueError("Invalid refresh token")

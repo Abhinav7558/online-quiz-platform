@@ -33,8 +33,8 @@ async def login_user(user: auth_schemas.UserLoginCreate, db: Session = Depends(g
         raise HTTPException(status_code=401, detail="Invalid username or password")
     
     # Here you would normally generate JWT tokens
-    access_token = token_utils.create_access_token(data={"sub": db_user.username})
-    refresh_token = token_utils.create_refresh_token(data={"sub": db_user.username})
+    access_token = token_utils.create_access_token(data={"sub": db_user.username, "role": db_user.role.value})
+    refresh_token = token_utils.create_refresh_token(data={"sub": db_user.username, "role": db_user.role.value})
 
     return {
         "access_token" : access_token,
