@@ -1,0 +1,66 @@
+from typing import List
+from fastapi import APIRouter, Depends, HTTPException, status, Query
+
+from ..dependencies import get_db, get_current_user, instructor_required
+from ..crud import quiz as quiz_crud
+from ..schemas import quiz as quiz_schemas
+
+
+router = APIRouter(
+    prefix="/quizzes",      
+    tags=["Quizzes"]
+)
+
+@router.get("", response_model=List[quiz_schemas.QuizResponse], status_code=status.HTTP_200_OK)
+def get_all_quizzes(user = Depends(get_current_user), db = Depends(get_db), limit: int = Query(10, ge=1), offset: int = Query(0, ge=0)):
+    """Get all quizzes."""
+    quizzes =  quiz_crud.get_quizzes(db=db, limit=limit, offset=offset)
+    if not quizzes:
+        raise HTTPException(status_code=404, detail="No quizzes found")
+    return quizzes
+
+@router.get("/{quiz_id}", response_model=quiz_schemas.QuizDetailResponse, status_code=status.HTTP_200_OK)
+def get_quiz_by_id(quiz_id: int, user = Depends(get_current_user), db = Depends(get_db)):
+    """Get quiz by ID."""
+    quiz = quiz_crud.get_quiz_by_id(db=db, quiz_id=quiz_id)
+    if not quiz:
+        raise HTTPException(status_code=404, detail="Quiz not found")
+    return quiz
+
+@router.post("", response_model=quiz_schemas.QuizDetailResponse, status_code=status.HTTP_201_CREATED)
+def create_quiz(quiz: quiz_schemas.QuizCreate, user = Depends(instructor_required), db = Depends(get_db)):
+    """Create a new quiz."""
+    existing_quiz = quiz_crud.get_quiz_by_title(db=db, title=quiz.title)
+    if existing_quiz:
+        raise HTTPException(status_code=400, detail="Quiz with this title already exists")
+    new_quiz = quiz_crud.create_quiz(db=db, quiz=quiz, creator_id=user.id)
+
+    return new_quiz
+
+@router.patch("/{quiz_id}", response_model=quiz_schemas.QuizDetailResponse, status_code=status.HTTP_200_OK)
+def update_quiz(quiz_id: int, quiz_update: quiz_schemas.QuizUpdate, user = Depends(instructor_required), db = Depends(get_db)):
+    """Update an existing quiz."""
+    quiz = quiz_crud.get_quiz_by_id(db=db, quiz_id=quiz_id)
+    if not quiz:
+        raise HTTPException(status_code=404, detail="Quiz not found")
+    
+    if quiz.created_by != user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to update this quiz")
+    
+    if quiz_update.title is None and quiz_update.description is None and quiz_update.passing_score is None:
+        raise HTTPException(status_code=400, detail="No fields provided for update")
+    
+    updated_quiz = quiz_crud.update_quiz(db=db, quiz=quiz, quiz_update=quiz_update)
+    return updated_quiz
+
+@router.delete("/{quiz_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_quiz(quiz_id: int, user = Depends(instructor_required), db = Depends(get_db)):
+    quiz = quiz_crud.get_quiz_by_id(db=db, quiz_id=quiz_id)
+    if not quiz:
+        raise HTTPException(status_code=404, detail="Quiz not found")
+    
+    if quiz.created_by != user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to delete this quiz")
+    
+    quiz_crud.delete_quiz(db=db, quiz=quiz)
+    return None

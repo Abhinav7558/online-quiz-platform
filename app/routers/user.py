@@ -16,7 +16,10 @@ router = APIRouter(
 @router.get("", response_model=List[user_schemas.UserResponse], status_code=status.HTTP_200_OK)
 def get_all_users(user = Depends(admin_required),  db: Session = Depends(get_db), limit: int = Query(10, ge=1), offset: int = Query(0, ge=0)):
     """Get all users for admin."""
-    return user_crud.get_users(db=db, limit=limit, offset=offset)
+    users = user_crud.get_users(db=db, limit=limit, offset=offset)
+    if not users:
+        raise HTTPException(status_code=404, detail="No users found")   
+    return users
 
 @router.get("/{user_id}", response_model=user_schemas.UserDetailResponse, status_code=status.HTTP_200_OK)
 def get_user_by_id(user_id: int, user = Depends(admin_required), db: Session = Depends(get_db)):
