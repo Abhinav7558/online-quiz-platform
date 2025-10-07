@@ -1,9 +1,10 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status, Query
+from sqlalchemy.orm import Session
 
 from ..dependencies import get_db, get_current_user, instructor_required
-from ..crud import quiz as quiz_crud
-from ..schemas import quiz as quiz_schemas
+from ..crud import quiz as quiz_crud, question as question_crud
+from ..schemas import quiz as quiz_schemas, question as question_schemas
 
 
 router = APIRouter(
@@ -64,3 +65,48 @@ def delete_quiz(quiz_id: int, user = Depends(instructor_required), db = Depends(
     
     quiz_crud.delete_quiz(db=db, quiz=quiz)
     return None
+
+@router.get("/{quiz_id}/questions", response_model=List[question_schemas.QuestionResponse], status_code=status.HTTP_200_OK)
+def get_all_questions_by_quiz(
+    quiz_id: int,
+    user=Depends(instructor_required),
+    db: Session = Depends(get_db),
+    limit: int = Query(10, ge=1, le=100, description="Number of questions to return"),
+    offset: int = Query(0, ge=0, description="Number of questions to skip")
+):
+    """Get all questions for a specific quiz with pagination."""
+    quiz = quiz_crud.get_quiz_by_id(db, quiz_id)
+    if not quiz:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Quiz with id {quiz_id} not found"
+        )
+    
+    questions = question_crud.get_questions_by_quiz(db, quiz_id, skip=offset, limit=limit)
+    
+    return questions
+
+
+@router.post("/{quiz_id}/questions", response_model=question_schemas.QuestionResponse, status_code=status.HTTP_201_CREATED)
+def create_question(
+    quiz_id: int,
+    question: question_schemas.QuestionCreate,
+    user=Depends(instructor_required),
+    db: Session = Depends(get_db)
+):
+    """Create a new question for a specific quiz."""
+    quiz = quiz_crud.get_quiz_by_id(db, quiz_id)
+    if not quiz:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Quiz with id {quiz_id} not found"
+        )
+    
+    try:
+        new_question = question_crud.create_question(db, quiz_id, question)
+        return new_question
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Failed to create question: {str(e)}"
+        )
