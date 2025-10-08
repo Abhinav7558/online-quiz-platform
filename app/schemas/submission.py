@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Dict
+from typing import Dict, Optional
 
 from pydantic import BaseModel
 
@@ -16,8 +16,8 @@ class SubmissionConfirmResponse(BaseModel):
 class SubmissionResult(BaseModel):
     id: int
     quiz_id: int
-    score: float
-    passed: bool
+    score: Optional[float]
+    passed: Optional[bool]
     submitted_at: datetime
 
 
@@ -29,8 +29,8 @@ class SubmissionFeedback(BaseModel):
 class SubmissionDetailResponse(BaseModel):
     id: int
     quiz_id: int
-    score: int
-    passed: bool
+    score: Optional[float]
+    passed: Optional[bool]
     submitted_at: datetime
     feedback: Dict[int, str]
 

@@ -10,6 +10,7 @@ else:
 celery_app = Celery(
     "quiz_tasks",
     broker=redis_url,
+    backend=redis_url,
 )
 
 from .tasks import calculate_score

@@ -25,6 +25,10 @@ def get_submission_result(id: int, db: Session = Depends(get_db), current_user: 
     submission = submission_crud.get_submission_by_id(db, id, current_user.id)
     if not submission:
         raise HTTPException(status_code=404, detail="Submission not found")
+    if not submission.score:
+        raise HTTPException(status_code=404, detail="Submission not graded yet")
+    if not submission.passed:
+        raise HTTPException(status_code=404, detail="Submission not graded yet")
     
     if submission.student_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to view this submission")
