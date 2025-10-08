@@ -34,3 +34,19 @@ def get_quiz_detailed_analytics(quiz_id: int, db=Depends(get_db), user=Depends(a
     except PermissionError as e:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
     return quiz_analytics
+
+@router.get("/students", response_model=list[analytics_schema.StudentAnalyticsItem], status_code=status.HTTP_200_OK)
+def get_student_analytics(db=Depends(get_db), user=Depends(admin_or_instructor_required)):
+    """Return student analytics."""
+    return analytics_crud.get_student_analytics(db, user)
+
+@router.get("/students/{student_id}", response_model=analytics_schema.IndividualStudentAnalyticsResponse, status_code=status.HTTP_200_OK)
+def get_individual_student_analytics(student_id: int, db=Depends(get_db), user=Depends(admin_or_instructor_required)):
+    """Return individual student analytics."""
+    try:
+        student_analytics = analytics_crud.get_individual_student_analytics(db, student_id, user)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except PermissionError as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+    return student_analytics

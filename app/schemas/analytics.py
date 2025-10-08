@@ -22,3 +22,35 @@ class QuizDetailedAnalyticsResponse(BaseModel):
 
     class Config:
         form_attributes = True
+
+
+class StudentAnalyticsItem(BaseModel):
+    student_id: int
+    username: str
+    quizzes_attempted: int
+    quizzes_passed: int
+
+    class Config:
+        orm_mode = True
+
+
+class IndividualSubmissionItem(BaseModel):
+    quiz_id: int
+    quiz_title: str
+    score: Optional[float] = None
+    passed: bool
+    submitted_at: Optional[str] = None
+
+    class Config:
+        orm_mode = True
+
+
+class IndividualStudentAnalyticsResponse(BaseModel):
+    student_id: int
+    username: str
+    total_attempts: int
+    total_passed: int
+    submissions: list[IndividualSubmissionItem]
+
+    class Config:
+        orm_mode = True

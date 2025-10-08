@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from app.models.user import UserRole
-from ..models import Quiz, Submission
+from ..models import Quiz, Submission, User
 
 def get_quiz_analytics(db: Session, user):
     """
@@ -42,16 +42,6 @@ def get_quiz_detailed_analytics(db: Session, quiz_id: int, user):
 
     total_submissions = db.query(func.count(Submission.id)).filter(Submission.quiz_id == quiz_id).scalar()
 
-    if total_submissions == 0:
-        return {
-            "quiz_id": quiz_id,
-            "total_submissions": 0,
-            "average_score": 0.0,
-            "pass_rate": 0.0,
-            "highest_score": 0.0,
-            "lowest_score": 0.0,
-        }
-
     average_score = db.query(func.avg(Submission.score)).filter(Submission.quiz_id == quiz_id).scalar() or 0.0
     pass_count = db.query(func.count(Submission.id)).filter(Submission.quiz_id == quiz_id, Submission.passed == True).scalar() or 0
     highest_score = db.query(func.max(Submission.score)).filter(Submission.quiz_id == quiz_id).scalar() or 0.0
@@ -66,4 +56,98 @@ def get_quiz_detailed_analytics(db: Session, quiz_id: int, user):
         "pass_rate": float(pass_rate),
         "highest_score": float(highest_score),
         "lowest_score": float(lowest_score),
+    }
+
+def get_student_analytics(db: Session, user):
+    """Return student analytics."""
+    attempts_sq = (
+        db.query(
+            Submission.student_id.label("student_id"),
+            func.count(func.distinct(Submission.quiz_id)).label("quizzes_attempted"),
+        )
+        .group_by(Submission.student_id)
+        .subquery()
+    )
+
+    passed_sq = (
+        db.query(
+            Submission.student_id.label("student_id"),
+            func.count(func.distinct(Submission.quiz_id)).label("quizzes_passed"),
+        )
+        .filter(Submission.passed == True)
+        .group_by(Submission.student_id)
+        .subquery()
+    )
+
+    q = (
+        db.query(
+            User.id.label("id"),
+            User.username.label("username"),
+            func.coalesce(attempts_sq.c.quizzes_attempted, 0).label("quizzes_attempted"),
+            func.coalesce(passed_sq.c.quizzes_passed, 0).label("quizzes_passed"),
+        )
+        .outerjoin(attempts_sq, User.id == attempts_sq.c.student_id)
+        .outerjoin(passed_sq, User.id == passed_sq.c.student_id)
+        .filter(User.role == UserRole.STUDENT)
+        .order_by(func.coalesce(passed_sq.c.quizzes_passed, 0).desc())
+    )
+
+    results = q.all()
+
+    analytics = []
+    for sid, username, quizzes_attempted, quizzes_passed in results:
+        analytics.append(
+            {
+                "student_id": int(sid),
+                "username": username,
+                "quizzes_attempted": int(quizzes_attempted or 0),
+                "quizzes_passed": int(quizzes_passed or 0),
+            }
+        )
+
+    return analytics
+
+def get_individual_student_analytics(db: Session, student_id: int, user):
+    """Return individual student analytics."""
+    student = db.query(User).filter(User.id == student_id, User.role == UserRole.STUDENT).first()
+    if not student:
+        raise ValueError("Student not found")
+
+    if user.role == UserRole.INSTRUCTOR:
+        instructor_quiz_ids = db.query(Quiz.id).filter(Quiz.created_by == user.id).subquery()
+        submission_exists = db.query(Submission).filter(
+            Submission.student_id == student_id,
+            Submission.quiz_id.in_(instructor_quiz_ids)
+        ).first()
+        if not submission_exists:
+            raise PermissionError("Not authorized to view analytics for this student")
+
+    total_attempts = db.query(func.count(Submission.id)).filter(Submission.student_id == student_id).scalar() or 0
+    total_passed = db.query(func.count(Submission.id)).filter(Submission.student_id == student_id, Submission.passed == True).scalar() or 0
+
+    submissions_q = db.query(Submission, Quiz).join(Quiz, Submission.quiz_id == Quiz.id)
+    submissions_q = submissions_q.filter(Submission.student_id == student_id)
+    if user.role == UserRole.INSTRUCTOR:
+        submissions_q = submissions_q.filter(Quiz.created_by == user.id)
+
+    submissions = submissions_q.order_by(Submission.submitted_at.desc()).all()
+
+    per_quiz = []
+    for submission, quiz in submissions:
+        per_quiz.append(
+            {
+                "quiz_id": quiz.id,
+                "quiz_title": quiz.title,
+                "score": submission.score,
+                "passed": bool(submission.passed),
+                "submitted_at": submission.submitted_at.isoformat() if submission.submitted_at is not None else None,
+            }
+        )
+
+    return {
+        "student_id": student.id,
+        "username": student.username,
+        "total_attempts": int(total_attempts),
+        "total_passed": int(total_passed),
+        "submissions": per_quiz,
     }
