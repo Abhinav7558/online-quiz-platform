@@ -60,3 +60,11 @@ def student_required(current_user = Depends(get_current_user)):
             detail="Only students can access"
         )
     return current_user
+
+def admin_or_instructor_required(current_user = Depends(get_current_user)):
+    if current_user.role != UserRole.ADMIN and current_user.role != UserRole.INSTRUCTOR:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only admins or instructors can access"
+        )
+    return current_user
