@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     default_admin_email: str = Field(..., env="DEFAULT_ADMIN_EMAIL")
     default_admin_password: str = Field(..., env="DEFAULT_ADMIN_PASSWORD")
 
+    running_in_docker: bool = Field(False, env="RUNNING_IN_DOCKER")
+
     class Config:
         env_file = ".env"
 
