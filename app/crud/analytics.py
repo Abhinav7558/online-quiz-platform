@@ -151,3 +151,20 @@ def get_individual_student_analytics(db: Session, student_id: int, user):
         "total_passed": int(total_passed),
         "submissions": per_quiz,
     }
+
+
+def get_overall_analytics(db: Session, user):
+    """Return overall analytics: total users, total quizzes, total submissions, average score."""
+    total_users = db.query(func.count(User.id)).scalar() or 0
+
+    quiz_q = db.query(Quiz)
+    submission_q = db.query(Submission)
+
+    total_quizzes = quiz_q.count() or 0
+    total_submissions = submission_q.count() or 0
+
+    return {
+        "total_users": int(total_users),
+        "total_quizzes": int(total_quizzes),
+        "total_submissions": int(total_submissions),
+    }

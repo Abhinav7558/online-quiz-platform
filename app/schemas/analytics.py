@@ -31,7 +31,7 @@ class StudentAnalyticsItem(BaseModel):
     quizzes_passed: int
 
     class Config:
-        orm_mode = True
+        form_attributes = True
 
 
 class IndividualSubmissionItem(BaseModel):
@@ -42,7 +42,7 @@ class IndividualSubmissionItem(BaseModel):
     submitted_at: Optional[str] = None
 
     class Config:
-        orm_mode = True
+        form_attributes = True
 
 
 class IndividualStudentAnalyticsResponse(BaseModel):
@@ -53,4 +53,13 @@ class IndividualStudentAnalyticsResponse(BaseModel):
     submissions: list[IndividualSubmissionItem]
 
     class Config:
-        orm_mode = True
+        form_attributes = True
+
+
+class OverallAnalyticsResponse(BaseModel):
+    total_users: int
+    total_quizzes: int
+    total_submissions: int
+
+    class Config:
+        form_attributes = True

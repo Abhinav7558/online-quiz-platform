@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from ..crud import analytics as analytics_crud
 from ..schemas import analytics as analytics_schema
-from ..dependencies import get_db, admin_or_instructor_required
+from ..dependencies import get_db, admin_or_instructor_required, admin_required
 
 
 router = APIRouter(
@@ -50,3 +50,9 @@ def get_individual_student_analytics(student_id: int, db=Depends(get_db), user=D
     except PermissionError as e:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
     return student_analytics
+
+@router.get("", response_model=analytics_schema.OverallAnalyticsResponse, status_code=status.HTTP_200_OK)
+def get_overall_analytics(db: Session = Depends(get_db), user=Depends(admin_required)):
+    """Get overall analytics endpoint."""
+    return analytics_crud.get_overall_analytics(db, user)
+
