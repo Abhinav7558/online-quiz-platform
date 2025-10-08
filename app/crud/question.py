@@ -60,11 +60,9 @@ def update_question(db: Session, question, question_update: schemas.QuestionUpda
         delta = new_points - old_points
         quiz = db.query(Quiz).filter(Quiz.id == question.quiz_id).first()
         old_passing_score = quiz.passing_score
-        print(old_passing_score, delta)
         if quiz:
             if delta != 0:
                 quiz.passing_score = quiz.passing_score + int(old_passing_score/delta)
-                print(quiz.passing_score)
             db.add(quiz)
 
     for field, value in update_data.items():
