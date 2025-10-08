@@ -5,4 +5,4 @@ from .quiz import Quiz
 from .question import Question
 from .option import Option
 from .submission import Submission
-from .answers import Answer
+from .answer import Answer

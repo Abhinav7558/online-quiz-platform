@@ -12,5 +12,5 @@ class Submission(Base):
     quiz_id = Column(Integer, ForeignKey("quizzes.id"))
     student_id = Column(Integer, ForeignKey("users.id"))
     submitted_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-    score = Column(Integer, default=0)
-    passed = Column(Boolean, default=False)
+    score = Column(Integer, nullable=True)
+    passed = Column(Boolean, nullable=True)

@@ -1,5 +1,4 @@
 from enum import Enum
-from datetime import datetime
 from typing import List, Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -68,10 +67,12 @@ class QuestionUpdate(BaseModel):
         return values
 
 
-class QuestionResponse(QuestionBase):
+class QuestionResponse(BaseModel):
     id: int
     quiz_id: int
-    created_at: datetime
+    text: str = Field(..., min_length=1)
+    question_type: QuestionTypeEnum
+    points: int = Field(default=1, ge=1)
 
     @field_validator('question_type', mode='before')
     @classmethod

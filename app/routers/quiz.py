@@ -2,9 +2,10 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
-from ..dependencies import get_db, get_current_user, instructor_required
-from ..crud import quiz as quiz_crud, question as question_crud
-from ..schemas import quiz as quiz_schemas, question as question_schemas
+from app.tasks.calculate_score import calculate_submission_score
+from ..dependencies import get_db, get_current_user, instructor_required, student_required
+from ..crud import quiz as quiz_crud, question as question_crud, answer as answer_crud
+from ..schemas import quiz as quiz_schemas, question as question_schemas, submission as submission_schemas
 
 
 router = APIRouter(
@@ -69,7 +70,7 @@ def delete_quiz(quiz_id: int, user = Depends(instructor_required), db = Depends(
 @router.get("/{quiz_id}/questions", response_model=List[question_schemas.QuestionResponse], status_code=status.HTTP_200_OK)
 def get_all_questions_by_quiz(
     quiz_id: int,
-    user=Depends(instructor_required),
+    user=Depends(get_current_user),
     db: Session = Depends(get_db),
     limit: int = Query(10, ge=1, le=100, description="Number of questions to return"),
     offset: int = Query(0, ge=0, description="Number of questions to skip")
@@ -110,3 +111,17 @@ def create_question(
             status_code=400,
             detail=f"Failed to create question: {str(e)}"
         )
+    
+@router.post("/{quiz_id}/submit", response_model=submission_schemas.SubmissionConfirmResponse, status_code=status.HTTP_201_CREATED)
+def submit_answers(quiz_id: int, data: submission_schemas.SubmissionCreate, user = Depends(student_required), db = Depends(get_db)):
+    """Submit answers for a quiz."""
+    submission = answer_crud.create_submission(
+        db=db,
+        student_id=user.id,
+        quiz_id=quiz_id,
+        answers=data.answers
+    )
+
+    calculate_submission_score.delay(submission.id)
+
+    return submission
