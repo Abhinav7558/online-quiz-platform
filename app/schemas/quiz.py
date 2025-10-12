@@ -30,6 +30,16 @@ class QuizResponse(BaseModel):
         from_attributes = True
 
 
+class QuizResponseWithPublishedStatus(QuizResponse):
+    id: int
+    title: str
+    description: Optional[str] = None
+    is_published: bool
+
+    class Config:
+        from_attributes = True
+
+
 class QuizDetailResponse(QuizResponse):
     passing_score: int
     created_by: int

@@ -79,3 +79,7 @@ def delete_question(db: Session, question) -> bool:
     db.delete(question)
     db.commit()
     return True
+
+def get_options_by_question(db: Session, question_id: int):
+    """Get options for a specific question."""
+    return db.query(Option).filter(Option.question_id == question_id).all()

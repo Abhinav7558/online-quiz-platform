@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text, Boolean
 
 from ..database import Base
 
@@ -12,5 +12,6 @@ class Quiz(Base):
     title = Column(String, unique=True, nullable=False)
     description = Column(Text)
     passing_score = Column(Integer, nullable=False)
-    created_by = Column(Integer, ForeignKey("users.id"))
+    is_published = Column(Boolean, default=False)
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"))
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))

@@ -86,4 +86,10 @@ class QuestionResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class QuestionDetailResponse(QuestionResponse): 
+    options: Optional[List[option_schemas.OptionResponse]] = None
+
+    class Config:
+        from_attributes = True
+
 

@@ -10,6 +10,17 @@ router = APIRouter(
     tags=["Questions"]
 )
 
+@router.get("{question_id}", response_model=question_schemas.QuestionDetailResponse, status_code=status.HTTP_200_OK)
+def get_question_by_id(question_id: int, user = Depends(instructor_required), db = Depends(get_db)):
+    """Get question by ID."""
+    question = question_crud.get_question_by_id(db=db, question_id=question_id)
+    if not question:
+        raise HTTPException(status_code=404, detail="Question not found")
+    if question.question_type.name == "MCQ":
+        options  = question_crud.get_options_by_question(db=db, question_id=question.id)
+        question.options = options
+    return question
+
 @router.patch("/{question_id}", response_model=question_schemas.QuestionResponse, status_code=status.HTTP_200_OK)
 def update_question(question_id: int, question_update: question_schemas.QuestionUpdate, user = Depends(instructor_required), db = Depends(get_db)):
     """Update an existing quiz."""
