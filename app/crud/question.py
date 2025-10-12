@@ -1,11 +1,12 @@
-from typing import List, Optional
+from typing import List
 
 from sqlalchemy.orm import Session
 
-from app.models.option import Option
-from app.models.question import Question
 from ..schemas import question as schemas
 from ..models.quiz import Quiz
+from ..models.user import UserRole
+from ..models.question import Question, QuestionType
+from app.models.option import Option
 
 
 def get_questions_by_quiz(db: Session, quiz_id: int, skip: int = 0, limit: int = 10) -> List[Question]:
@@ -44,14 +45,39 @@ def create_question(db: Session, quiz_id: int, question: schemas.QuestionCreate)
     return db_question
 
 
-def get_question_by_id(db: Session, question_id: int) -> Optional[Question]:
+def get_question_by_id(db: Session, question_id: int, user):
     """Get a question by ID."""
-    return db.query(Question).filter(Question.id == question_id).first()
+    question = db.query(Question).filter(Question.id == question_id).first()
+    quiz = (
+        db.query(Quiz)
+        .join(Question, Quiz.id == Question.quiz_id)
+        .filter(Question.id == question.id, Quiz.is_published == True)
+        .first()
+    )
+    if not quiz:
+        if user.role == UserRole.INSTRUCTOR:
+            question = db.query(Question).filter(Question.id == question_id).join(Quiz).filter(Quiz.created_by == user.id).first()
+        elif user.role == UserRole.ADMIN:
+            question = db.query(Question).filter(Question.id == question_id).first()
+        elif user.role == UserRole.STUDENT:
+            question = None  
+    return question
 
 
 def update_question(db: Session, question, question_update: schemas.QuestionUpdate):
     """Update a question.""" 
     update_data = question_update.model_dump(exclude_unset=True)
+
+    q_type = update_data.get("question_type", question.question_type)
+
+    if "correct_answer" in update_data:
+        correct_answer = update_data["correct_answer"]
+
+        if q_type == QuestionType.MCQ and correct_answer not in {"A", "B", "C", "D"}:
+            raise ValueError("For MCQ, correct_answer must be one of 'A', 'B', 'C', 'D'.")
+
+        elif q_type == QuestionType.TRUE_FALSE and correct_answer.upper() not in {"TRUE", "FALSE"}:
+            raise ValueError("For TRUE_FALSE, correct_answer must be 'TRUE' or 'FALSE'.")
 
     # Adjust passing score if points are updated
     if "points" in update_data:
