@@ -174,12 +174,21 @@ def publish_quiz(quiz_id: int, user = Depends(admin_or_instructor_required), db 
 @router.post("/{quiz_id}/submit", response_model=submission_schemas.SubmissionConfirmResponse, status_code=status.HTTP_201_CREATED)
 def submit_answers(quiz_id: int, data: submission_schemas.SubmissionCreate, user = Depends(student_required), db = Depends(get_db)):
     """Submit answers for a quiz."""
-    submission = answer_crud.create_submission(
-        db=db,
-        student_id=user.id,
-        quiz_id=quiz_id,
-        answers=data.answers
-    )
+    try:
+        is_submitted = answer_crud.has_submitted(db=db, student_id=user.id, quiz_id=quiz_id)
+        if is_submitted:
+            raise HTTPException(status_code=400, detail="You have already submitted this quiz")
+        quiz = quiz_crud.get_quiz_by_id(db=db, quiz_id=quiz_id, user=user)
+        if not quiz or not quiz.is_published:
+            raise HTTPException(status_code=404, detail="Quiz not found or not published")
+        submission = answer_crud.create_submission(
+            db=db,
+            student_id=user.id,
+            quiz_id=quiz_id,
+            answers=data.answers
+        )
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
 
     calculate_submission_score.delay(submission.id)
 
