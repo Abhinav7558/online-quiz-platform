@@ -3,9 +3,10 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
 from app.tasks.calculate_score import calculate_submission_score
-from ..dependencies import get_db, get_current_user, instructor_required, student_required
+from ..dependencies import get_db, get_current_user, instructor_required, student_required, admin_or_instructor_required
 from ..crud import quiz as quiz_crud, question as question_crud, answer as answer_crud
 from ..schemas import quiz as quiz_schemas, question as question_schemas, submission as submission_schemas
+from ..models.user import UserRole
 
 
 router = APIRouter(
@@ -56,12 +57,12 @@ def update_quiz(quiz_id: int, quiz_update: quiz_schemas.QuizUpdate, user = Depen
     return updated_quiz
 
 @router.delete("/{quiz_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_quiz(quiz_id: int, user = Depends(instructor_required), db = Depends(get_db)):
+def delete_quiz(quiz_id: int, user = Depends(admin_or_instructor_required), db = Depends(get_db)):
     quiz = quiz_crud.get_quiz_by_id(db=db, quiz_id=quiz_id)
     if not quiz:
         raise HTTPException(status_code=404, detail="Quiz not found")
     
-    if quiz.created_by != user.id:
+    if quiz.created_by != user.id and user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Not authorized to delete this quiz")
     
     quiz_crud.delete_quiz(db=db, quiz=quiz)

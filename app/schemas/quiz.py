@@ -9,7 +9,7 @@ class QuizBase(BaseModel):
 
 
 class QuizCreate(QuizBase):
-    passing_score: int = Field(..., ge=0)
+    passing_score: int = Field(..., ge=0, le=100)
 
 
 class QuizUpdate(BaseModel):
