@@ -40,6 +40,8 @@ def create_question(db: Session, quiz_id: int, question: schemas.QuestionCreate)
             )
             db.add(db_option)
         db.commit()
+
+    update_quiz_total_points(db, quiz_id, db_question.points)
     
     db.refresh(db_question)
     return db_question
@@ -48,6 +50,8 @@ def create_question(db: Session, quiz_id: int, question: schemas.QuestionCreate)
 def get_question_by_id(db: Session, question_id: int, user):
     """Get a question by ID."""
     question = db.query(Question).filter(Question.id == question_id).first()
+    if not question:
+        return None
     quiz = (
         db.query(Quiz)
         .join(Question, Quiz.id == Question.quiz_id)
@@ -84,6 +88,7 @@ def update_question(db: Session, question, question_update: schemas.QuestionUpda
         new_points = update_data["points"]
         old_points = question.points
         delta = new_points - old_points
+
         quiz = db.query(Quiz).filter(Quiz.id == question.quiz_id).first()
         old_passing_score = quiz.passing_score
         if quiz:
@@ -104,8 +109,20 @@ def delete_question(db: Session, question) -> bool:
     
     db.delete(question)
     db.commit()
+
+    update_quiz_total_points(db, question.quiz_id, -question.points)
     return True
 
 def get_options_by_question(db: Session, question_id: int):
     """Get options for a specific question."""
     return db.query(Option).filter(Option.question_id == question_id).all()
+
+def update_quiz_total_points(db: Session, quiz_id: int, additional_points: int):
+    """Update the total points of a quiz."""
+    quiz = db.query(Quiz).filter(Quiz.id == quiz_id).first()
+    if quiz:
+        quiz.total_points += additional_points
+        db.add(quiz)
+        db.commit()
+        db.refresh(quiz)
+    return quiz

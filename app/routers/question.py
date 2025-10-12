@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from ..dependencies import get_db, instructor_required, get_current_user, admin_or_instructor_required
 from ..crud import question as question_crud
+from ..crud import quiz as quiz_crud
 from ..schemas import question as question_schemas
 from ..models.quiz import Quiz
 from ..models.user import UserRole
@@ -26,8 +27,14 @@ def get_question_by_id(question_id: int, user = Depends(get_current_user), db = 
 def update_question(question_id: int, question_update: question_schemas.QuestionUpdate, user = Depends(instructor_required), db = Depends(get_db)):
     """Update an existing quiz."""
     question = question_crud.get_question_by_id(db=db, question_id=question_id, user=user)
+    
     if not question:
         raise HTTPException(status_code=404, detail="Question not found")
+    
+    quiz = quiz_crud.get_quiz_by_id(db=db, quiz_id=question.quiz_id, user=user)
+
+    if quiz.created_by != user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to update this question")
     
     if question_update.text is None and question_update.question_type is None and question_update.correct_answer is None and question_update.points is None:
         raise HTTPException(status_code=400, detail="No fields provided for update")

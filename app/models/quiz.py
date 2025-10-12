@@ -12,6 +12,7 @@ class Quiz(Base):
     title = Column(String, unique=True, nullable=False)
     description = Column(Text)
     passing_score = Column(Integer, nullable=False)
+    total_points = Column(Integer, default=0)
     is_published = Column(Boolean, default=False)
     created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"))
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
