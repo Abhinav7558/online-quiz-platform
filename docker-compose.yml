@@ -11,6 +11,11 @@ services:
       - "5433:5432" 
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U quiz_user -d quiz_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7
@@ -20,7 +25,8 @@ services:
   web:
     build: .
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     ports:
       - "8000:8000"
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
@@ -35,8 +41,10 @@ services:
   worker:
     build: .
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
     env_file:
       - .env
     command: celery -A app.celery_app worker --loglevel=info

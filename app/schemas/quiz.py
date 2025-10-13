@@ -6,7 +6,6 @@ from pydantic import BaseModel, Field
 class QuizBase(BaseModel):
     title: str = Field(..., min_length=3, max_length=255)
     description: Optional[str] = Field(None, max_length=1000)
-    total_points: int = Field(0, ge=0)
 
 
 class QuizCreate(QuizBase):
