@@ -8,7 +8,6 @@ class Answer(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     submission_id = Column(Integer, ForeignKey("submissions.id", ondelete="CASCADE"))
-    question_id = Column(Integer, ForeignKey("questions.id"))
-    selected_option_id = Column(Integer, ForeignKey("options.id"), nullable=True)
+    question_id = Column(Integer, ForeignKey("questions.id", ondelete="CASCADE"))
     answer_text = Column(Text, nullable=True)
     is_correct = Column(Boolean, default=False)

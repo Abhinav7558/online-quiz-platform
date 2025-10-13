@@ -39,12 +39,17 @@ class QuestionCreate(QuestionBase):
 
     @model_validator(mode='after')
     @classmethod
-    def check_mcq_options(cls, values):
+    def validate_question(cls, values):
         q_type = values.question_type
         options = values.options
+
         if q_type == QuestionTypeEnum.MCQ:
-            if not options or len(options) == 2:
+            if not options or len(options) != 4:
                 raise ValueError("MCQ must have 4 options")
+        elif q_type == QuestionTypeEnum.TRUE_FALSE:
+            q_correct_answer = values.correct_answer
+            if q_correct_answer and q_correct_answer.upper() not in {"TRUE", "FALSE"}:
+                raise ValueError("For TRUE_FALSE, correct_answer must be TRUE or FALSE")
         return values
 
 
@@ -58,11 +63,11 @@ class QuestionUpdate(BaseModel):
 
     @model_validator(mode='after')
     @classmethod
-    def check_mcq_options(cls, values):
+    def validate_question(cls, values):
         q_type = values.question_type
         options = values.options
         if q_type == QuestionTypeEnum.MCQ:
-            if not options or len(options) == 2:
+            if not options or len(options) != 4:
                 raise ValueError("MCQ must have 4 options")
         return values
 
@@ -82,6 +87,12 @@ class QuestionResponse(BaseModel):
             # It's a SQLAlchemy enum, use the name (MCQ, TRUE_FALSE, SHORT_ANSWER)
             return v.name
         return v
+
+    class Config:
+        from_attributes = True
+
+class QuestionDetailResponse(QuestionResponse): 
+    options: Optional[List[option_schemas.OptionResponse]] = None
 
     class Config:
         from_attributes = True

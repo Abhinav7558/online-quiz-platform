@@ -30,11 +30,14 @@ def get_user_by_id(user_id: int, user = Depends(admin_required), db: Session = D
     return user
 
 @router.put("/{user_id}/role", response_model=user_schemas.UserDetailResponse, status_code=status.HTTP_200_OK)
-def update_user_role(user_id: int, role: UserRole = Query(...), user = Depends(admin_required), db: Session = Depends(get_db)):
+def update_user_role(user_id: int, role: UserRole = Query(...), current_user = Depends(admin_required), db: Session = Depends(get_db)):
     """Update user role for admin."""
     user = user_crud.get_user_by_id(db=db, user_id=user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+
+    if user == current_user:
+        raise HTTPException(status_code=400, detail="Cannot change your own role")
     
     try:
         updated_user = user_crud.update_user_role(db=db, user=user, new_role=role)

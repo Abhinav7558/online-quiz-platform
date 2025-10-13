@@ -9,7 +9,7 @@ class QuizBase(BaseModel):
 
 
 class QuizCreate(QuizBase):
-    passing_score: int = Field(..., ge=0)
+    passing_score: int = Field(..., ge=0, le=100)
 
 
 class QuizUpdate(BaseModel):
@@ -25,6 +25,14 @@ class QuizResponse(BaseModel):
     id: int
     title: str
     description: Optional[str] = None
+    total_points: int
+
+    class Config:
+        from_attributes = True
+
+
+class QuizResponseWithPublishedStatus(QuizResponse):
+    is_published: bool
 
     class Config:
         from_attributes = True

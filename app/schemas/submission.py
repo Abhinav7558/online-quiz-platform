@@ -9,8 +9,8 @@ class SubmissionCreate(BaseModel):
 
 
 class SubmissionConfirmResponse(BaseModel):
-    message: str = "Submission successful"
     id: int
+    message: str = "Submission successful"
 
 
 class SubmissionResult(BaseModel):

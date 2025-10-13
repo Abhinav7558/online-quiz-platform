@@ -33,12 +33,12 @@ def calculate_submission_score(submission_id: int):
         # Check correctness (for text-based questions)
         if question.correct_answer and answer.answer_text == question.correct_answer:
             answer.is_correct = True
-            total_score += 1
+            total_score += question.points
             correct_count += 1
         else:
             answer.is_correct = False
 
-    passing_score = getattr(quiz, "passing_score", 0.5 * len(questions))
+    passing_score = quiz.passing_score if quiz.passing_score is not None else 0
     passed = total_score >= passing_score
 
     # Update submission
